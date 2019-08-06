@@ -174,6 +174,8 @@ class ConvolutionalDictionaryLearning(TransformerMixin):
         self.random_state = random_state
         self.raise_on_increase = raise_on_increase
         self.name = name
+        
+        self.checkpoints = None
 
         # Init property
         self._D_hat = None
@@ -196,8 +198,7 @@ class ConvolutionalDictionaryLearning(TransformerMixin):
             verbose=self.verbose, callback=self.callback,
             random_state=self.random_state, n_jobs=self.n_jobs,
             name=self.name, raise_on_increase=self.raise_on_increase,
-            sort_atoms=self.sort_atoms)
-
+            sort_atoms=self.sort_atoms, checkpoints=self.checkpoints)
         self._pobj, self._times, self._D_hat, self._z_hat, self.reg_ = res
         self.n_channels_ = X.shape[1]
         return self

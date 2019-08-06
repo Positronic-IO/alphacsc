@@ -9,6 +9,8 @@ import time
 import sys
 
 import numpy as np
+import os
+import h5py
 
 from .utils import lil
 from .utils import check_random_state
@@ -33,7 +35,7 @@ def learn_d_z_multi(X, n_atoms, n_times_atom, n_iter=60, n_jobs=1,
                     unbiased_z_hat=False, use_sparse_z=False,
                     stopping_pobj=None, raise_on_increase=True,
                     verbose=10, callback=None, random_state=None, name="DL",
-                    window=False, sort_atoms=False):
+                    window=False, sort_atoms=False, checkpoints=None):
     """Multivariate Convolutional Sparse Coding with optional rank-1 constraint
 
     Parameters
@@ -227,9 +229,9 @@ def learn_d_z_multi(X, n_atoms, n_times_atom, n_iter=60, n_jobs=1,
     kwargs.update(algorithm_params)
 
     if algorithm == 'batch':
-        pobj, times, D_hat, z_hat = _batch_learn(greedy=False, **kwargs)
+        pobj, times, D_hat, z_hat = _batch_learn(greedy=False, checkpoints=checkpoints, **kwargs)
     elif algorithm == "greedy":
-        pobj, times, D_hat, z_hat = _batch_learn(greedy=True, **kwargs)
+        pobj, times, D_hat, z_hat = _batch_learn(greedy=True, checkpoints=checkpoints, **kwargs)
     elif algorithm == "online":
         pobj, times, D_hat, z_hat = _online_learn(**kwargs)
     elif algorithm == "stochastic":
@@ -270,7 +272,7 @@ def _batch_learn(X, D_hat, z_hat, compute_z_func, compute_d_func,
                  obj_func, end_iter_func, n_iter=100,
                  lmbd_max='fixed', reg=None, verbose=0, greedy=False,
                  random_state=None, name="batch", uv_constraint='separate',
-                 window=False):
+                 window=False, checkpoints=None):
 
     reg_ = reg
 
@@ -294,11 +296,26 @@ def _batch_learn(X, D_hat, z_hat, compute_z_func, compute_d_func,
                              'increase n_iter.' % (
                                  n_iter_by_atom * n_atoms, n_atoms, n_iter))
 
-    # monitor cost function
     times = [0]
+    start = 0
+    if checkpoints:
+        if os.path.exists(checkpoints):
+            print("Checkpoint file found. Restarting ...")
+            # load checkpoint
+            with h5py.File(checkpoints, 'r') as h5:
+                D_hat = np.asarray(h5['D_hat'])
+                z_hat = np.asarray(h5['z_hat'])
+                start = int(h5['start'][0]) + 1
+                reg = h5['reg'][0]
+                reg_ = h5['reg_'][0]
+                constants['ztz'] = h5['ztz']
+                constants['ztX'] = h5['ztX']
+                times = np.asarray(h5['times']).tolist()
+
+    # monitor cost function
     pobj = [obj_func(X, z_hat, D_hat, reg=reg_)]
 
-    for ii in range(n_iter):  # outer loop of coordinate descent
+    for ii in range(start, n_iter):  # outer loop of coordinate descent
         if verbose == 1:
             msg = '.' if ((ii + 1) % 50 != 0) else '+\n'
             print(msg, end='')
@@ -366,6 +383,21 @@ def _batch_learn(X, D_hat, z_hat, compute_z_func, compute_d_func,
         if end_iter_func(X, z_hat, D_hat, pobj, ii):
             break
 
+        # save checkpoint
+        if checkpoints:
+            with h5py.File(checkpoints, 'w') as h5:
+                h5.create_dataset('D_hat', shape=D_hat.shape, dtype=D_hat.dtype)[:] = D_hat
+                h5.create_dataset('z_hat', shape=z_hat.shape, dtype=z_hat.dtype)[:] = z_hat
+                h5.create_dataset('start', shape=(1,))[0] = ii
+                h5.create_dataset('reg', shape=(1,))[0] = reg            
+                h5.create_dataset('reg_', shape=(1,))[0] = reg_
+                ds6 = h5.create_dataset('ztz', shape=constants['ztz'].shape, dtype=constants['ztz'].dtype)[:] = constants['ztz']
+                ds7 = h5.create_dataset('ztX', shape=constants['ztX'].shape, dtype=constants['ztX'].dtype)[:] = constants['ztX']
+                nptimes = np.asarray(times)
+                ds8 = h5.create_dataset('times', shape=nptimes.shape, dtype=nptimes.dtype)[:] = nptimes
+
+    if checkpoints:
+        os.remove(checkpoints)
     return pobj, times, D_hat, z_hat
 
 

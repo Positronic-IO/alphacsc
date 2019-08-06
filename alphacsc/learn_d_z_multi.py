@@ -356,7 +356,7 @@ def _batch_learn(X, D_hat, z_hat, compute_z_func, compute_d_func,
 
         if np.all(z_nnz == 0):
             import warnings
-            warnings.warn("Regularization parameter `reg` is too large "
+            warnings.warn(f"Regularization parameter `reg` {reg} is too large "
                           "and all the activations are zero. No atoms has"
                           " been learned.", UserWarning)
             break

@@ -176,6 +176,8 @@ class ConvolutionalDictionaryLearning(TransformerMixin):
         self.name = name
         
         self.checkpoints = None
+        self.labels = None
+        self.info = None
 
         # Init property
         self._D_hat = None

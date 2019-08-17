@@ -135,7 +135,7 @@ class ConvolutionalDictionaryLearning(TransformerMixin):
                  alpha=.8, batch_size=1, batch_selection='random',
                  use_sparse_z=False, unbiased_z_hat=False,
                  verbose=10, callback=None, random_state=None, name="_CDL",
-                 raise_on_increase=True, sort_atoms=False):
+                 raise_on_increase=True, sort_atoms=False, init_dhat=None, init_zhat=None, init_channels=None):
 
         # Problem Specs
         self.n_atoms = n_atoms
@@ -180,7 +180,10 @@ class ConvolutionalDictionaryLearning(TransformerMixin):
         self.info = None
 
         # Init property
-        self._D_hat = None
+        self._D_hat = init_dhat
+        self._z_hat = init_zhat
+        self.n_channels_ = init_channels
+        self.reg_ = 1
 
     def fit(self, X, y=None):
         """Learn a convolutional dictionary from the set of signals X.
@@ -361,7 +364,7 @@ class GreedyCDL(ConvolutionalDictionaryLearning):
                  solver_d='alternate_adaptive', solver_d_kwargs={},
                  rank1=True, window=False, uv_constraint='separate',
                  lmbd_max='scaled', eps=1e-10, D_init=None, D_init_params={},
-                 verbose=10, random_state=None, sort_atoms=False):
+                 verbose=10, random_state=None, sort_atoms=False, init_dhat=None, init_zhat=None, init_channels=None):
         super().__init__(
             n_atoms, n_times_atom, reg=reg, n_iter=n_iter,
             solver_z=solver_z, solver_z_kwargs=solver_z_kwargs,
@@ -371,4 +374,4 @@ class GreedyCDL(ConvolutionalDictionaryLearning):
             eps=eps, D_init=D_init, D_init_params=D_init_params,
             algorithm='greedy', lmbd_max=lmbd_max, raise_on_increase=True,
             loss='l2', use_sparse_z=False, n_jobs=n_jobs, verbose=verbose,
-            callback=None, random_state=random_state, name="GreedyCDL")
+            callback=None, random_state=random_state, name="GreedyCDL", init_dhat=init_dhat, init_zhat=init_zhat, init_channels=init_channels)

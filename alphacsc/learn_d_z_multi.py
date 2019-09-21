@@ -386,8 +386,8 @@ def _batch_learn(X, D_hat, z_hat, compute_z_func, compute_d_func,
         # save checkpoint
         if checkpoints:
             with h5py.File(checkpoints, 'w') as h5:
-                h5.create_dataset('D_hat', shape=D_hat.shape, dtype=D_hat.dtype)[:] = D_hat
-                h5.create_dataset('z_hat', shape=z_hat.shape, dtype=z_hat.dtype)[:] = z_hat
+                h5.create_dataset('D_hat', shape=D_hat.shape, dtype=D_hat.dtype, compression="gzip", compression_opts=9)[:] = D_hat
+                h5.create_dataset('z_hat', shape=z_hat.shape, dtype=z_hat.dtype, compression="gzip", compression_opts=9)[:] = z_hat
                 h5.create_dataset('start', shape=(1,))[0] = ii
                 h5.create_dataset('reg', shape=(1,))[0] = reg            
                 h5.create_dataset('reg_', shape=(1,))[0] = reg_
